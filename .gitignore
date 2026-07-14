@@ -1,0 +1,23 @@
+# Neo4j runtime data
+neo4j/data/
+neo4j/logs/
+neo4j/plugins/
+
+# Keep import dir structure but not CSVs (uncomment if needed)
+# neo4j/import/*
+# !neo4j/import/.gitkeep
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
