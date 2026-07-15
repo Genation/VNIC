@@ -1,0 +1,22 @@
+{
+  "name": "vnic-edu-agent",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx index.ts dev",
+    "start": "tsx index.ts start",
+    "fake-vis": "tsx fake-vis-api.ts"
+  },
+  "dependencies": {
+    "@livekit/agents": "^1.5.1",
+    "@livekit/agents-plugin-openai": "^1.5.0",
+    "dotenv": "^16.4.0",
+    "openai": "^6.8.1",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}

@@ -7,6 +7,9 @@ neo4j/plugins/
 # neo4j/import/*
 # !neo4j/import/.gitkeep
 
+# Dependencies
+node_modules/
+
 # Environment
 .env
 .env.*
@@ -21,3 +24,8 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+.agents
+
+# Build output
+dist/
+.next/
