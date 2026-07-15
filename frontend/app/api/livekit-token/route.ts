@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
-  const roomName = body.roomName || 'edu-room';
+  const roomName = body.roomName || `room-${crypto.randomUUID().slice(0, 8)}`;
   const userId = body.participantIdentity || `student-${Date.now()}`;
 
   const apiKey = process.env.LIVEKIT_API_KEY;

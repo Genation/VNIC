@@ -16,11 +16,14 @@ Quy tắc:
 
 export const formatTranscript = llm.tool({
   description:
-    'Chuyển transcript lời nói thành markdown đẹp với LaTeX cho công thức toán. Gọi sau khi giải thích kiến thức có công thức.',
+    'Chuyển transcript lời nói thành markdown đẹp với LaTeX. KHÔNG block — LLM gọi tool này rồi tiếp tục trả lời ngay.',
   parameters: z.object({
     transcript: z.string().describe('Transcript lời nói cần format.'),
   }),
   execute: async ({ transcript }, { ctx }) => {
+    // NON-BLOCKING: release control ngay → LLM tiếp tục nói, không chờ
+    await ctx.update('Đang format...');
+
     try {
       const response = await openaiClient.chat.completions.create({
         model: 'gpt-4.1-mini',
@@ -34,7 +37,7 @@ export const formatTranscript = llm.tool({
 
       const formatted = response.choices[0]?.message?.content ?? transcript;
 
-      // Send formatted markdown to frontend via data channel (silent, not spoken)
+      // Send formatted markdown to frontend via data channel (silent)
       const participant = ctx.session._roomIO?.localParticipant;
       if (participant) {
         const encoder = new TextEncoder();
@@ -44,9 +47,9 @@ export const formatTranscript = llm.tool({
         ).catch(() => {});
       }
 
-      return 'Đã format transcript.';
+      return 'Format hoàn tất.';
     } catch {
-      return 'Format transcript thất bại.';
+      return 'Format thất bại.';
     }
   },
 });

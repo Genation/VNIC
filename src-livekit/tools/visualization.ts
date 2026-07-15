@@ -16,9 +16,8 @@ export const renderVisualization = llm.tool({
       ),
   }),
   execute: async ({ topic, requirements }, { ctx }) => {
-    ctx.session.generateReply({
-      userInput: `Hãy nói ngắn gọn: "Để tôi vẽ hình minh họa cho ${topic}, bạn xem bên phải nhé."`,
-    });
+    // NON-BLOCKING: release control ngay → LLM tiếp tục nói
+    await ctx.update(`Để tôi vẽ hình minh họa cho ${topic}, bạn xem bên phải nhé.`);
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30_000);

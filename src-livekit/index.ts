@@ -26,7 +26,7 @@ export default defineAgent({
     const session = new voice.AgentSession({
       vad,
       stt: new openai.STT({
-        model: "gpt-4o-transcribe",
+        model: "gpt-realtime-whisper",
         language: "vi",
         useRealtime: true,
         vad,
@@ -40,7 +40,6 @@ export default defineAgent({
         voice: "ash",
         speed: 1.5,
       }),
-      ttsTextTransforms: ["filter_markdown", "filter_emoji"],
     });
 
     await session.start({
