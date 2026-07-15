@@ -70,10 +70,10 @@ Không tách chat agent và voice agent. Một `AgentSession` với `RealtimeMod
 
 **Cách hoạt động:**
 
-| Mode | Input | Output |
-|------|-------|--------|
-| Text | Data channel: `conversation.item.create({type: "input_text", text: ...})` | Model trả text + optional audio |
-| Voice | WebRTC audio track → streaming vào RealtimeModel | Audio streaming + transcript tự động |
+| Mode  | Input                                                                     | Output                               |
+| ----- | ------------------------------------------------------------------------- | ------------------------------------ |
+| Text  | Data channel: `conversation.item.create({type: "input_text", text: ...})` | Model trả text + optional audio      |
+| Voice | WebRTC audio track → streaming vào RealtimeModel                          | Audio streaming + transcript tự động |
 
 Khi user tap voice button, chỉ toggle input modality — không tạo session mới, không mất context.
 
@@ -91,6 +91,7 @@ Chat hiển thị: $$C(n,k) = \frac{n!}{k!(n-k)!}$$
 ### 3. Async Non-blocking Tools
 
 Tool render visualization dùng `ctx.update()` để:
+
 1. Release control về LLM ngay lập tức → agent nói preamble
 2. Chạy render trong background → agent tiếp tục giải thích
 3. Khi render xong → kết quả forward qua data channel → frontend hiển thị
@@ -98,6 +99,7 @@ Tool render visualization dùng `ctx.update()` để:
 ### 4. Runner Loop (Multi-step Tool Calls)
 
 `AgentSession` tự động handle tool loop qua `max_tool_steps` (default ~10). Mỗi user message có thể trigger nhiều tool call tuần tự:
+
 - render_visualization (async, non-blocking) → LLM tiếp tục giải thích → hoàn thành → hiển thị
 
 ### 5. Multi-Session Chat Management
@@ -117,8 +119,13 @@ GPT-Realtime session tối đa 60 phút. Đối với multi-session dài hạn, 
 ## Agent Logic (Pseudo-code)
 
 ```typescript
-import { Agent, AgentSession, function_tool, RunContext } from '@livekit/agents';
-import * as openai from '@livekit/agents-plugin-openai';
+import {
+  Agent,
+  AgentSession,
+  function_tool,
+  RunContext,
+} from "@livekit/agents";
+import * as openai from "@livekit/agents-plugin-openai";
 
 class EduTutorAgent extends Agent {
   constructor() {
@@ -135,7 +142,7 @@ class EduTutorAgent extends Agent {
 
   async on_enter() {
     await this.session.generate_reply({
-      instructions: 'Chào học viên, hỏi hôm nay bạn muốn học gì.',
+      instructions: "Chào học viên, hỏi hôm nay bạn muốn học gì.",
     });
   }
 }
@@ -143,53 +150,61 @@ class EduTutorAgent extends Agent {
 // === TOOLS ===
 
 const renderVisualization = function_tool({
-  name: 'render_visualization',
-  description: 'Tạo animation/hình minh họa cho khái niệm. Gọi khi học viên muốn xem trực quan.',
+  name: "render_visualization",
+  description:
+    "Tạo animation/hình minh họa cho khái niệm. Gọi khi học viên muốn xem trực quan.",
   flags: ToolFlag.CANCELLABLE,
-  on_duplicate: 'reject',
+  on_duplicate: "reject",
   parameters: z.object({
-    topic: z.string().describe('Chủ đề cần minh họa.'),
-    requirements: z.string().describe('Yêu cầu cụ thể: sơ đồ, animation, style...'),
+    topic: z.string().describe("Chủ đề cần minh họa."),
+    requirements: z
+      .string()
+      .describe("Yêu cầu cụ thể: sơ đồ, animation, style..."),
   }),
   execute: async ({ topic, requirements }, { ctx }) => {
     // Release control → agent nói preamble ngay
-    await ctx.update(`Để tôi vẽ hình minh họa cho ${topic}, bạn xem bên phải nhé.`);
+    await ctx.update(
+      `Để tôi vẽ hình minh họa cho ${topic}, bạn xem bên phải nhé.`,
+    );
 
     // FAKE: gọi teammate API (hiện tại fake 2s delay trả HTML mặc định)
     const viz = await fetch(`${VIS_API_URL}/api/visualize`, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify({ prompt: topic, requirements }),
-    }).then(r => r.json());
+    }).then((r) => r.json());
 
     // Forward kết quả qua data channel → frontend render
-    await ctx.forwardToClient('visualization_ready', viz);
+    await ctx.forwardToClient("visualization_ready", viz);
 
-    return viz.status === 'done'
+    return viz.status === "done"
       ? `Hình minh họa cho ${topic} đã sẵn sàng, bạn xem bên phải nhé.`
       : `Đang tạo hình cho ${topic}, vui lòng đợi thêm.`;
   },
 });
 
 const formatTranscript = function_tool({
-  name: 'format_transcript',
-  description: 'Format transcript thành markdown với LaTeX cho công thức toán.',
+  name: "format_transcript",
+  description: "Format transcript thành markdown với LaTeX cho công thức toán.",
   parameters: z.object({
     transcript: z.string(),
   }),
   execute: async ({ transcript }) => {
     const result = await openai.chat.completions.create({
-      model: 'gpt-4.1-mini',
-      messages: [{
-        role: 'system',
-        content: `Reformat the following educational transcript into well-formatted markdown.
+      model: "gpt-4.1-mini",
+      messages: [
+        {
+          role: "system",
+          content: `Reformat the following educational transcript into well-formatted markdown.
 - Use $$...$$ for block LaTeX, $...$ for inline LaTeX.
 - Use ### for headings, - for lists, ** for bold.
 - Preserve ALL mathematical formulas in LaTeX.
 - Keep the same meaning and Vietnamese language.`,
-      }, {
-        role: 'user',
-        content: transcript,
-      }],
+        },
+        {
+          role: "user",
+          content: transcript,
+        },
+      ],
     });
     return result.choices[0].message.content;
   },
@@ -202,12 +217,12 @@ const formatTranscript = function_tool({
 
 ### Package Stack
 
-| Package | Purpose |
-|---------|---------|
-| `@livekit/components-react` | `useSession`, `useAgent`, `useSessionMessages` hooks |
-| `@agents-ui/*` (shadcn) | `AgentSessionProvider`, `AgentControlBar`, `AgentChatTranscript`, `AgentAudioVisualizerBar` |
-| `livekit-client` | `TokenSource`, low-level room control |
-| `kaTeX` | Render LaTeX math trong chat |
+| Package                     | Purpose                                                                                     |
+| --------------------------- | ------------------------------------------------------------------------------------------- |
+| `@livekit/components-react` | `useSession`, `useAgent`, `useSessionMessages` hooks                                        |
+| `@agents-ui/*` (shadcn)     | `AgentSessionProvider`, `AgentControlBar`, `AgentChatTranscript`, `AgentAudioVisualizerBar` |
+| `livekit-client`            | `TokenSource`, low-level room control                                                       |
+| `kaTeX`                     | Render LaTeX math trong chat                                                                |
 
 ### Component Tree
 
@@ -256,7 +271,6 @@ const tokenSource = TokenSource.endpoint('/api/livekit-token');
 
 export default function Page() {
   const session = useSession(tokenSource, {
-    agentName: 'edu-tutor-agent',
     participantIdentity: generateUserId(),
   });
 
@@ -276,6 +290,7 @@ export default function Page() {
 ### Voice Mode Interaction
 
 Khi user tap mic button (đã có sẵn trong `AgentControlBar`):
+
 - Microphone bắt đầu stream audio vào LiveKit room
 - RealtimeModel nhận audio track, VAD tự động detect turn
 - Agent trả lời bằng giọng nói
@@ -286,17 +301,17 @@ Khi user tap mic button (đã có sẵn trong `AgentControlBar`):
 
 ```typescript
 // app/api/livekit-token/route.ts
-import { AccessToken } from 'livekit-server-sdk';
+import { AccessToken } from "livekit-server-sdk";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const roomName = searchParams.get('room') || 'default-room';
-  const userId = searchParams.get('userId') || `student-${Date.now()}`;
+  const roomName = searchParams.get("room") || "default-room";
+  const userId = searchParams.get("userId") || `student-${Date.now()}`;
 
   const token = new AccessToken(
     process.env.LIVEKIT_API_KEY!,
     process.env.LIVEKIT_API_SECRET!,
-    { identity: userId, ttl: '3h' }
+    { identity: userId, ttl: "3h" },
   );
   token.addGrant({ roomJoin: true, room: roomName });
   return Response.json({ token: await token.toJwt() });
@@ -312,9 +327,9 @@ export async function GET(req: Request) {
 // DELETE → xóa conversation
 
 interface Conversation {
-  id: string;         // uuid
-  room_name: string;  // "conv_<uuid>"
-  title: string;      // "Bài học về tổ hợp"
+  id: string; // uuid
+  room_name: string; // "conv_<uuid>"
+  title: string; // "Bài học về tổ hợp"
   created_at: string;
   updated_at: string;
 }
@@ -328,10 +343,10 @@ interface Conversation {
 ```typescript
 // Frontend: switch conversation
 async function switchConversation(conv: Conversation) {
-  await session.end();                          // disconnect room cũ
+  await session.end(); // disconnect room cũ
   const newSession = useSession(tokenSource, {
-    agentName: 'edu-tutor-agent',
-    roomName: conv.room_name,                   // join room mới
+    agentName: "edu-tutor-agent",
+    roomName: conv.room_name, // join room mới
     participantIdentity: userId,
   });
   await newSession.start();
@@ -423,19 +438,20 @@ NEXT_PUBLIC_TOKEN_ENDPOINT=/api/livekit-token
 
 ## Error Handling
 
-| Scenario | Behavior |
-|----------|----------|
-| OpenAI API error | AgentSession retry, sau 3 lần → thông báo lỗi |
-| Visualization API timeout (>30s) | Tool cancel, agent nói "Đang gặp vấn đề tạo hình, tôi sẽ giải thích bằng lời" |
-| Visualization API unavailable | Agent skip tool, giải thích bằng lời |
-| Voice VAD false positive | Semantic VAD (default) xử lý — ít false trigger hơn server VAD |
-| User interrupt while agent speaking | LiveKit tự động cancel response, truncate, và xử lý turn mới |
+| Scenario                            | Behavior                                                                      |
+| ----------------------------------- | ----------------------------------------------------------------------------- |
+| OpenAI API error                    | AgentSession retry, sau 3 lần → thông báo lỗi                                 |
+| Visualization API timeout (>30s)    | Tool cancel, agent nói "Đang gặp vấn đề tạo hình, tôi sẽ giải thích bằng lời" |
+| Visualization API unavailable       | Agent skip tool, giải thích bằng lời                                          |
+| Voice VAD false positive            | Semantic VAD (default) xử lý — ít false trigger hơn server VAD                |
+| User interrupt while agent speaking | LiveKit tự động cancel response, truncate, và xử lý turn mới                  |
 
 ---
 
 ## Development Setup
 
 ### Prerequisites
+
 - Node.js 22+ / Deno
 - LiveKit Cloud account (hoặc self-hosted livekit-server)
 - OpenAI API key (GPT-Realtime + gpt-4.1-mini)

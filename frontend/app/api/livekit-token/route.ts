@@ -18,7 +18,12 @@ export async function POST(request: NextRequest) {
     ttl: '3h',
   });
 
-  token.addGrant({ roomJoin: true, room: roomName });
+  token.addGrant({
+    roomJoin: true,
+    room: roomName,
+    canPublish: true,
+    canPublishData: true,
+  });
 
   const jwt = await token.toJwt();
   return NextResponse.json({
